@@ -157,13 +157,20 @@ sudo umount rootfs
 
 ## 六、编译和运行 hvisor
 
-首先将[hvisor 代码仓库](https://github.com/KouweiLee/hvisor)拉到本地，之后切换到 dev 分支，并在 hvisor/images/aarch64 文件夹下，将之前编译好的根文件系统、Linux 内核镜像分别放在 virtdisk、kernel 目录下，并分别重命名为 rootfs1.ext4、Image。
+首先将[hvisor 代码仓库](https://github.com/KouweiLee/hvisor)拉到本地，之后切换到 dev 分支，并在 hvisor/platform/aarch64/qemu-gicv3/image 文件夹下，将之前编译好的根文件系统、Linux 内核镜像分别放在 virtdisk、kernel 目录下，并分别重命名为 rootfs1.ext4、Image。
 
 第二步，需要准备好各配置文件，以[virtio-blk&console示例](https://github.com/syswonder/hvisor-tool/tree/main/examples/qemu-aarch64/with_virtio_blk_console)为例，该目录下包含6个文件，分别对这6个文件进行如下操作：
 
 * linux1.dts：Root Linux的设备树，hvisor启动时会使用。
-* linux2.dts：Zone1 Linux的设备树，hvisor-tool启动zone1时会需要。需要将linux1.dts、linux2.dts替换 devicetree 目录下的同名文件，并执行`make all`进行编译，得到linux1.dtb、linux2.dtb。
-* qemu_aarch64.rs、qemu-aarch64.mk则直接替换掉hvisor仓库中的同名文件。
+* linux2.dts：Zone1 Linux的设备树，hvisor-tool启动zone1时会需要。需要将linux1.dts、linux2.dts替换 devicetree 目录下的同名文件，并执行`dtc -I dts -O dtb -o linux1.dtb linux1.dts`进行编译，得到linux1.dtb，linux2.dtb 同理获得。
+* qemu_aarch64.rs 替换掉 qemu-gicv3 文件夹下的 board.rs. 
+* qemu-aarch64.mk 替换掉同名文件夹下的 platform.mk.
+
+> 提示缺少`dtc`时，可以执行指令：
+>
+> ```
+> sudo apt install device-tree-compiler
+> ```
 
 之后，在 hvisor 目录下，执行：
 
@@ -180,11 +187,7 @@ bootm 0x40400000 - 0x40000000
 
 该启动命令会从物理地址`0x40400000`启动 hvisor，`0x40000000`本质上已无用，但因历史原因仍然保留。hvisor 启动时，会自动启动 root linux（用于管理的 Linux），并进入 root linux 的 shell 界面，root linux 即为 zone0，承担管理工作。
 
-> 提示缺少`dtc`时，可以执行指令：
->
-> ```
-> sudo apt install device-tree-compiler
-> ```
+> 如果使用 qemu-gicv2，由于编译时 uboot 内置了上述启动命令，可以无需进行任何操作自动启动。
 
 ## 七、使用 hvisor-tool 启动 zone1-linux
 
